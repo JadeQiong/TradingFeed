@@ -3,21 +3,43 @@ import { Trade } from '../types/types';
 
 export function useWebSocket(url: string | null) {
   const [messages, setMessages] = useState<Trade[]>([]);
+  const [error, setError] = useState<string | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
-    if (!url) return;
+    if (!url) {
+      setMessages([]);
+      setError(null);
+      return;
+    }
 
-    const ws = new WebSocket(url);
-    wsRef.current = ws;
+    try {
+      const ws = new WebSocket(url);
+      wsRef.current = ws;
+      ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        setMessages((prev) => [data, ...prev.slice(0, 99)]); // Limit to 100
+      };
+      ws.onerror = (event) => {
+        setError('WebSocket error occurred.');
+      };
 
-    ws.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      setMessages((prev) => [data, ...prev.slice(0, 99)]); // Limit to 100
-    };
+      ws.onclose = (event) => {
+        if (!event.wasClean) {
+          setError('WebSocket connection closed unexpectedly.');
+        }
+      };
 
-    return () => ws.close();
+      setError(null); // reset error on successful connect
+
+      return () => {
+        ws.close();
+        wsRef.current = null;
+      };
+    } catch (err) {
+      setError('Failed to connect to WebSocket. Please check the URL.');
+    }
   }, [url]);
 
-  return messages;
+  return { messages, error };
 }
