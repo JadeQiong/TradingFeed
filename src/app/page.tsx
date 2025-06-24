@@ -1,103 +1,92 @@
-import Image from "next/image";
+'use client';
+
+import { useState } from 'react';
+import { useWebSocket } from '@/hooks/useWebSocket';
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [url, setUrl] = useState('');
+  const [wsUrl, setWsUrl] = useState<string | null>(null);
+  const trades = useWebSocket(wsUrl);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+  const handleConnect = () => {
+    const sanitizedUrl = url.trim();
+    if (!sanitizedUrl.startsWith('ws://') && !sanitizedUrl.startsWith('wss://')) {
+      alert('Please enter a valid WebSocket URL.');
+      return;
+    }
+  
+    setWsUrl(sanitizedUrl);
+  };
+
+  const handleDisconnect = () => {
+    setWsUrl(null);
+  };
+
+  return (
+    <main className="min-h-screen p-8 sm:p-16 bg-white dark:bg-black text-black dark:text-white font-sans">
+      <h1 className="text-2xl sm:text-4xl font-bold mb-8 text-center">
+        Live Trades Viewer
+      </h1>
+
+      <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8">
+        <input
+          type="text"
+          placeholder="Enter WebSocket URL"
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+          className="w-full sm:w-[400px] px-4 py-2 border rounded-lg bg-white dark:bg-zinc-900"
+        />
+        {!wsUrl ? (
+          <button
+            onClick={handleConnect}
+            className="px-6 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+            Connect
+          </button>
+        ) : (
+          <button
+            onClick={handleDisconnect}
+            className="px-6 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition"
           >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+            Disconnect
+          </button>
+        )}
+      </div>
+
+      <div className="overflow-x-auto">
+        <table className="min-w-full text-left border-collapse">
+          <thead>
+            <tr className="border-b border-zinc-300 dark:border-zinc-700">
+              <th className="px-4 py-2">Time</th>
+              <th className="px-4 py-2">Price</th>
+              <th className="px-4 py-2">Quantity</th>
+              <th className="px-4 py-2">Symbol</th>
+            </tr>
+          </thead>
+          <tbody>
+            {trades.map((trade, idx) => (
+              <tr
+                key={idx}
+                className="border-b border-zinc-200 dark:border-zinc-800"
+              >
+                <td className="px-4 py-2">
+                  {new Date(trade.timestamp || Date.now()).toLocaleTimeString()}
+                </td>
+                <td className="px-4 py-2">{trade.price ?? '-'}</td>
+                <td className="px-4 py-2">{trade.size  ?? '-'}</td>
+                <td className="px-4 py-2">{trade.symbol ?? '-'}</td>
+              </tr>
+            ))}
+            {trades.length === 0 && (
+              <tr>
+                <td colSpan={4} className="px-4 py-6 text-center text-zinc-500">
+                  {wsUrl ? 'Waiting for trades...' : 'No connection established.'}
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </main>
   );
 }
