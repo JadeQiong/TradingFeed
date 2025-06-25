@@ -7,7 +7,12 @@ export default function Home() {
   const MAX_TRADES = 100;
   const [url, setUrl] = useState('');
   const [wsUrl, setWsUrl] = useState<string | null>(null);
-  const { messages: trades, error } = useWebSocket(wsUrl);
+  const {
+    messages: trades,
+    error,
+    setMessages,
+    setError,
+  } = useWebSocket(wsUrl);
   const limitedTrades = trades.slice(-MAX_TRADES);
 
   const handleConnect = () => {
@@ -16,11 +21,15 @@ export default function Home() {
       !sanitizedUrl.startsWith('ws://') &&
       !sanitizedUrl.startsWith('wss://')
     ) {
-      alert('Please enter a valid WebSocket URL.');
+      setError('Please enter a valid WebSocket URL.');
       return;
     }
 
     setWsUrl(sanitizedUrl);
+  };
+
+  const handleClear = () => {
+    setMessages([]); // Clear the trades
   };
 
   const handleDisconnect = () => {
@@ -65,6 +74,12 @@ export default function Home() {
             Disconnect
           </button>
         )}
+        <button
+          onClick={handleClear}
+          className="px-4 py-2 rounded-lg bg-gray-400 text-white hover:bg-gray-500 transition"
+        >
+          Clear
+        </button>
       </div>
 
       {error && (
@@ -81,6 +96,7 @@ export default function Home() {
               <th className="px-4 py-2">Price</th>
               <th className="px-4 py-2">Quantity</th>
               <th className="px-4 py-2">Symbol</th>
+              <th className="px-4 py-2">Exchange</th>
             </tr>
           </thead>
           <tbody>
@@ -101,6 +117,7 @@ export default function Home() {
                 </td>
                 <td className="px-4 py-2">{trade.size ?? '-'}</td>
                 <td className="px-4 py-2">{trade.symbol ?? '-'}</td>
+                <td className="px-4 py-2">{trade.exchange ?? '-'}</td>
               </tr>
             ))}
             {limitedTrades.length === 0 && (

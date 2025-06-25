@@ -8,23 +8,44 @@ export function useWebSocket(url: string | null) {
 
   useEffect(() => {
     if (!url) {
-        setMessages([]);
-        setError(null);
-        return;
-      }
+      //    setMessages([]);
+      setError(null);
+      return;
+    }
 
-      try{
-        const ws = new WebSocket(url);
-        wsRef.current = ws;
-        ws.onmessage = (event) => {
-            const data = JSON.parse(event.data);
-            setMessages((prev) => [data, ...prev.slice(0, 99)]); // Limit to 100
-          };
-          ws.onerror = (event) => {
-            console.log(event);
-            setError('WebSocket error occurred.');
-          };
-    
+    try {
+      const ws = new WebSocket(url);
+      wsRef.current = ws;
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          // Check that data has the expected shape
+          if (
+            typeof data !== 'object' ||
+            data === null ||
+            typeof data.price !== 'number' ||
+            typeof data.size !== 'number' ||
+            typeof data.symbol !== 'string' ||
+            typeof data.timestamp !== 'number'
+          ) {
+            console.warn('Malformed trade data:', data);
+            return;
+          }
+          if (!data || !data.price || !data.size || !data.symbol) {
+            console.warn('Received invalid data:', data);
+            return;
+          }
+          setMessages((prev) => [data, ...prev]);
+        } catch (err) {
+          console.warn('Failed to parse incoming message:', event.data, err);
+        }
+      };
+
+      ws.onerror = (event) => {
+        console.log(event);
+        setError('WebSocket error occurred.');
+      };
+
       ws.onclose = (event) => {
         if (!event.wasClean) {
           setError('WebSocket connection closed unexpectedly.');
@@ -37,12 +58,11 @@ export function useWebSocket(url: string | null) {
         ws.close();
         wsRef.current = null;
       };
-      } catch (err) {
-        console.log('WebSocket connection error:', err);
-        setError('Failed to connect to WebSocket. Please check the URL.');
-      }
-
+    } catch (err) {
+      console.log('WebSocket connection error:', err);
+      setError('Failed to connect to WebSocket. Please check the URL.');
+    }
   }, [url]);
 
-  return {messages, error};
+  return { messages, error, setMessages, setError };
 }

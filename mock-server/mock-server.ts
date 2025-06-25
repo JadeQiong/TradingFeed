@@ -30,8 +30,25 @@ wss.on('connection', (ws) => {
   console.log('Client connected.');
 
   const interval = setInterval(() => {
-    const trade = generateTrade();
-    ws.send(JSON.stringify(trade));
+    const shouldSendMalformed = Math.random() < 0.2; // 20% chance
+
+    if (shouldSendMalformed) {
+      const malformedOptions = [
+        'not-a-json-string',
+        JSON.stringify({ bad: 'data', missing: 'fields' }),
+        '{ unclosed json',
+        '12345',
+        JSON.stringify(null),
+        '["not","an","object"]',
+      ];
+      const malformed =
+        malformedOptions[Math.floor(Math.random() * malformedOptions.length)];
+      ws.send(malformed);
+      console.log('Sent malformed data:', malformed);
+    } else {
+      const trade = generateTrade();
+      ws.send(JSON.stringify(trade));
+    }
   }, 1000);
 
   ws.on('close', () => {
